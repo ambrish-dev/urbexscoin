@@ -1,0 +1,73 @@
+# Urbexs CircleCI 2.0 configuration file
+
+version: 2
+jobs:
+  build:
+    docker:
+      # Ubuntu 16.04 base image
+      - image: ubuntu:16.04
+        
+    working_directory: urbexs/src/github.com/urbexscoin/urbexscoin
+
+    steps:
+    # Dependencies & setup
+    - run:
+        name: Install base dependencies
+        command: | 
+          apt-get -y update && apt-get -y upgrade
+          apt-get -y install git
+          apt-get -y install build-essential libssl-dev libdb++-dev libboost-all-dev libcrypto++-dev libqrencode-dev libminiupnpc-dev libgmp-dev libgmp3-dev autoconf autogen automake libtool 
+    - run:
+        name: Install QT dependencies
+        command: apt-get -y install qt5-default qt5-qmake qtbase5-dev-tools qttools5-dev-tools
+    - run:
+        name: Set up test directories
+        command: | 
+          mkdir ~/logs
+          mkdir ~/bins
+          mkdir ~/logs/daemon
+          mkdir ~/logs/qt
+          mkdir ~/bins/ubuntu-16.04
+          mkdir ~/.Urbexs
+
+    # Builds & tests
+    - checkout
+    - run:
+        name: Build daemon
+        command: | 
+          cd src  
+          make -j6 -f makefile.unix USE_UPNP=1 |& tee ~/logs/daemon/daemon-make.log
+    - run:
+        name: Test daemon
+        command: |
+          cd bin
+          printf "rpcuser=UBXrpc\nrpcpassword=x1y2z3\n" > ~/.Urbexs/Urbexs.conf
+          ./urbexsd --datadir=/root/.Urbexs -daemon && sleep 5s
+          ./urbexsd --datadir=/root/.Urbexs getinfo |& tee -a ~/logs/daemon/daemon-test.log
+          ./urbexsd --datadir=/root/.Urbexs stop |& tee -a ~/logs/daemon/daemon-test.log
+    
+    - run:
+        name: Build QT
+        command: |
+          qmake USE_UPNP=1 Urbexs.pro |& tee ~/logs/qt/qt-qmake.log
+          make -j6 |& tee ~/logs/qt/qt-make.log
+
+      # Log & bin artifacts
+    - store_artifacts:
+        path: ~/logs/daemon/daemon-make.log
+    - store_artifacts:
+        path: ~/.Urbexs/debug.log
+        destination: /root/logs/daemon/debug.log
+    - store_artifacts:
+        path: bin/urbexsd
+        destination: /root/bins/ubuntu-16.04/urbexsd
+
+    - store_artifacts: 
+        path: ~/logs/daemon/daemon-test.log
+    - store_artifacts:
+        path: ~/logs/qt/qt-qmake.log
+    - store_artifacts:
+        path: ~/logs/qt/qt-make.log
+    - store_artifacts:
+        path: Urbexs-qt
+        destination: /root/bins/ubuntu-16.04/Urbexs-qt

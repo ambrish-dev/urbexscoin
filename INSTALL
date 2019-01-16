@@ -1,0 +1,9 @@
+Building Urbexs
+
+See doc/readme-qt.rst for instructions on building Urbexs QT,
+the intended-for-end-users, nice-graphical-interface, reference
+implementation of Urbexs.
+
+See doc/build-*.txt for instructions on building Urbexsd,
+the intended-for-services, no-graphical-interface, reference
+implementation of Urbexs.
